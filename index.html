@@ -2,7 +2,11 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101815">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <title>撞球走位練習｜塞與力度</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -12,10 +16,25 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;background:var(--room);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;font-size:15px;line-height:1.6}
-  .wrap{max-width:440px;margin:0 auto;padding:14px 12px 40px}
+  .wrap{max-width:460px;margin:0 auto;padding:12px 12px 0;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .layout{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+  .left{display:flex;flex-direction:column;align-items:center}
+  .left .hud{width:100%}
+  canvas#table{width:min(100%,calc((100dvh - 250px) * 456 / 856));min-width:220px;aspect-ratio:456/856;height:auto}
+  .actions-left{display:none}
+  .sticky{position:sticky;bottom:0;z-index:5;background:var(--room);padding:10px 0 max(10px,env(safe-area-inset-bottom));margin-top:12px;border-top:1px solid var(--line)}
+  @media (min-width:760px), (orientation:landscape) and (min-width:640px){
+    .wrap{max-width:1100px;padding-top:16px}
+    .layout{grid-template-columns:minmax(260px,44%) minmax(0,1fr);gap:20px;align-items:start}
+    .left{position:sticky;top:12px}
+    canvas#table{width:min(100%,calc((100dvh - 215px) * 456 / 856))}
+    .sticky{position:static;border-top:0;background:transparent}
+    .actions-left{display:flex}
+  }
+  @media (max-height:520px) and (orientation:landscape){ h1,.sub{display:none} .wrap{padding-top:6px} .left{top:6px} }
   h1{font-size:20px;font-weight:500;margin:0 0 2px;letter-spacing:.02em}
   .sub{color:var(--dim);font-size:13px;margin:0 0 12px}
-  canvas#table{width:100%;display:block;border-radius:10px;touch-action:none;user-select:none}
+  canvas#table{display:block;border-radius:10px;touch-action:none;user-select:none}
   .hud{min-height:44px;margin:10px 0 6px;padding:8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-size:14px}
   .hud.ok{border-color:var(--ok);color:var(--ok)}
   .hud.bad{border-color:var(--red)}
@@ -45,7 +64,10 @@
   .actions{display:flex;gap:8px;margin-top:12px}
   .actions button{flex:1}
   .drills{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  .hint{font-size:12.5px;color:var(--dim);margin:12px 0 0;line-height:1.7}
+  .hint{font-size:12.5px;color:var(--dim);margin:8px 0 0;line-height:1.7}
+  details{margin-top:12px;color:var(--dim);font-size:13px} summary{cursor:pointer;user-select:none}
+  .actions .primary{min-height:48px;font-size:16px}
+  .actions button{min-height:44px}
   .stats{font-size:12.5px;color:var(--dim);margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
   .quick{display:flex;gap:5px;margin-top:6px}
   .quick button{padding:3px 7px;font-size:12px;border-radius:6px}
@@ -67,11 +89,20 @@
 <body>
 <div class="wrap">
   <h1>撞球走位練習</h1>
-  <p class="sub">用塞（擊球點）加力度，把母球送到目標區。多球時照九號球規則，由小號打到 9 號。</p>
+  <p class="sub">用塞加力度，把母球送到目標區；多球時照九號球規則由小號打到 9。</p>
 
+  <div class="layout">
+  <div class="left">
   <canvas id="table" width="456" height="856"></canvas>
   <div class="hud" id="hud">選一個練習，或直接拖曳球擺位。準備好就按「出桿」。</div>
-
+  <div class="actions actions-left" style="width:100%">
+    <button class="primary" id="shoot2">出桿</button>
+    <button id="addBall2">＋ 球</button>
+    <button id="delBall2">－ 球</button>
+  </div>
+  </div>
+  <div class="right">
+  <div class="rowwide">
   <div class="card" style="margin-top:10px">
     <div class="lab">瞄準角度</div>
     <div class="pm">
@@ -80,10 +111,10 @@
       <button id="aimR" aria-label="右轉">▶</button>
     </div>
     <input type="range" id="jog" min="-4" max="4" step="0.02" value="0">
-    <div class="jogrow"><span>左轉 4°</span><span>微調轉盤，放開自動回中；按住 ◀ ▶ 會連續轉</span><span>右轉 4°</span></div>
+    <div class="jogrow"><span>左轉 4°</span><span>轉盤放開會回中；按住 ◀ ▶ 連續轉</span><span>右轉 4°</span></div>
   </div>
 
-  <div class="row">
+  <div class="row" style="align-items:stretch">
     <div class="card spin">
       <canvas id="spin" width="236" height="236"></canvas>
       <div class="lbl" id="spinLbl">中心（無塞）</div>
@@ -112,22 +143,24 @@
     </div>
   </div>
 
-  <div class="actions">
-    <button class="primary" id="shoot">出桿</button>
-    <button id="addBall">＋ 加一顆球</button>
-    <button id="delBall">－ 移除選中球</button>
   </div>
-
   <div class="drills" id="drills"></div>
   <div class="stats"><span id="stAtt">出桿 0 次</span><span id="stOk">停在目標區 0 次</span><span id="stPot">進袋 0 顆</span><span id="stFoul">犯規 0 次</span></div>
 
   <h2>每桿參數對照表 <span><button id="copyLog">複製表格</button><button id="clearLog">清空</button></span></h2>
   <div class="logwrap" id="logwrap"><div class="empty">還沒出桿。每一桿的塞、力度、角度與結果都會記在這裡，點任一列可以還原那桿的擺位與參數重打。</div></div>
 
-  <p class="hint">
+  <details><summary>操作說明</summary><p class="hint">
     操作：拖曳球或藍色虛線圈可以移動位置；在檯面空白處按住拖曳，母球會朝手指方向粗瞄，再用上方轉盤細調；點袋口會用假想球法把目標球（黃圈，規則開啟時自動是檯上最小號）瞄向那個袋。
     母球上的紅點與藍點會跟著真實旋轉滾動：撞完後往回捲代表下塞在作用、往前捲是上塞；球外側的弧形箭頭是側塞方向，直線箭頭是母球目前滑動的方向。
-  </p>
+  </p></details>
+  </div>
+  </div>
+  <div class="actions sticky">
+    <button class="primary" id="shoot">出桿</button>
+    <button id="addBall">＋ 加一顆球</button>
+    <button id="delBall">－ 移除選中球</button>
+  </div>
 </div>
 
 <script>
@@ -565,18 +598,21 @@
   $('powP').addEventListener('click', ()=>setPower(power+0.5));
   $('prev').addEventListener('change', refresh);
   $('rules').addEventListener('change', ()=>{ if($('rules').checked){ pickLowest(); aimAtSel(); refresh(); } });
-  $('shoot').addEventListener('click', shoot);
-  $('addBall').addEventListener('click', ()=>{
+  $('shoot').addEventListener('click', shoot); $('shoot2').addEventListener('click', shoot);
+  window.addEventListener('resize', ()=>draw());
+  const addBall = ()=>{
     if (running) return;
     if (balls.length>=10){ setHud('最多 9 顆目標球。',''); return; }
     const p=freeSpot(), n=nextNum(); balls.push(mkBall(p.x,p.y,n)); sel=balls.length-1; aimAtSel(); trails=[];
     setHud('加入 '+n+' 號球，拖到你要的位置。規則開啟時會從最小號開始打。',''); refresh();
-  });
-  $('delBall').addEventListener('click', ()=>{
+  };
+  const delBall = ()=>{
     if (running) return;
     if (balls.length<=2){ setHud('至少要留一顆目標球。',''); return; }
     balls.splice(sel,1); pickLowest(); aimAtSel(); trails=[]; refresh();
-  });
+  };
+  ['addBall','addBall2'].forEach(id=>$(id).addEventListener('click',addBall));
+  ['delBall','delBall2'].forEach(id=>$(id).addEventListener('click',delBall));
   $('clearLog').addEventListener('click', ()=>{ log=[]; renderLog(); });
   $('copyLog').addEventListener('click', ()=>{
     const head='桿\t練習\t塞\t力度\t角度\t結果\t進袋\n';
